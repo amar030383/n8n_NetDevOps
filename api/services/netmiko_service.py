@@ -19,7 +19,7 @@ def run_show_command(device: dict, command: str, creds: dict) -> str:
                 net_connect.enable()
             except Exception:
                 pass
-        output = net_connect.send_command(command)
+        output = net_connect.send_command(command,use_textfsm=True)
     finally:
         try:
             net_connect.disconnect()
