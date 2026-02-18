@@ -4,6 +4,7 @@ from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import permissions
 
 from .services.csv_loader import load_devices
 from .services.env_loader import get_credentials
@@ -13,6 +14,7 @@ from .services.textfsm_parser import parse_with_textfsm
 
 class HealthCheckView(APIView):
     """Simple health check endpoint for load balancers and monitoring."""
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         return Response({
@@ -22,6 +24,8 @@ class HealthCheckView(APIView):
 
 
 class RunShowView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
         device_ip = request.data.get('device_ip')
         command = request.data.get('command')

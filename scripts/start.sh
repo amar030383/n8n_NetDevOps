@@ -20,4 +20,12 @@ fi
 
 echo "Starting Django application on http://localhost:${PORT}"
 echo "POST /api/v1/run-show with {\"device_ip\":\"<ip>\",\"command\":\"<show command>\"}"
-gunicorn netapi.wsgi:application --bind 0.0.0.0:${PORT}
+
+# Apply database migrations
+python3 manage.py migrate --noinput
+
+# Create admin user
+python3 scripts/create_admin.py
+
+# Start Gunicorn with workers and threads for concurrency
+gunicorn netapi.wsgi:application --bind 0.0.0.0:${PORT} --workers 4 --threads 4
