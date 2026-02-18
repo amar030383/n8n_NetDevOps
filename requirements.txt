@@ -4,3 +4,5 @@ netmiko
 textfsm
 gunicorn
 requests
+psutil
+paramiko
