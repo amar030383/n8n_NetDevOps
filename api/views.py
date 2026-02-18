@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,6 +9,16 @@ from .services.csv_loader import load_devices
 from .services.env_loader import get_credentials
 from .services.netmiko_service import run_show_command
 from .services.textfsm_parser import parse_with_textfsm
+
+
+class HealthCheckView(APIView):
+    """Simple health check endpoint for load balancers and monitoring."""
+
+    def get(self, request):
+        return Response({
+            'status': 'ok',
+            'timestamp': datetime.utcnow().isoformat() + 'Z',
+        })
 
 
 class RunShowView(APIView):

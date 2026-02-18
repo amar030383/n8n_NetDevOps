@@ -27,6 +27,21 @@ Runs at `http://localhost:8000`. The script kills any existing process on port 8
 
 ## API
 
+**GET** `/api/v1/health`
+
+Health check endpoint for load balancers and monitoring.
+
+```bash
+curl http://localhost:8000/api/v1/health
+```
+
+Response:
+```json
+{"status": "ok", "timestamp": "2025-02-18T12:00:00.000000Z"}
+```
+
+---
+
 **POST** `/api/v1/run-show`
 
 ```bash
