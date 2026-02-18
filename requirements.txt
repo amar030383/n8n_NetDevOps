@@ -3,3 +3,4 @@ djangorestframework
 netmiko
 textfsm
 gunicorn
+requests
