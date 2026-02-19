@@ -1,10 +1,12 @@
-# n8n and netapi run on the same Docker network. Use this URL in your n8n HTTP Request nodes:
-#   http://netapi:8000/api/v1/run-show
-# (Do NOT use 172.18.x.x or localhost - containers resolve each other by service name.)
+# n8n_engine and netdevops run on separate Docker networks.
+# n8n_engine reaches netdevops API via host: http://host.docker.internal:8000/api/v1/run-show
+
+name: netdevops-stack
 
 services:
-  n8n:
+  n8n_engine:
     image: n8nio/n8n:latest
+    container_name: n8n_engine
     ports:
       - "5678:5678"
     environment:
@@ -12,33 +14,29 @@ services:
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
     volumes:
-      - n8n_data:/home/node/.n8n
+      - n8n_engine_data:/home/node/.n8n
     networks:
-      - netdevops
+      - n8n_network
 
-  netapi:
+  netdevops:
     build: .
+    container_name: netdevops
     ports:
       - "8000:8000"
     environment:
-      - NET_DEVICE_USERNAME=${NET_DEVICE_USERNAME}
-      - NET_DEVICE_PASSWORD=${NET_DEVICE_PASSWORD}
-      - NET_DEVICE_ENABLE_PASSWORD=${NET_DEVICE_ENABLE_PASSWORD:-}
-      - NET_DEVICE_PORT=${NET_DEVICE_PORT:-22}
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
       - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-admin}
       - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
     volumes:
-      # Mount project for live code + db persistence
       - .:/app
     networks:
-      - netdevops
-    # API must reach network devices over SSH - use host network for outbound or bridge (default)
-    # Bridge allows outbound SSH to devices; no extra config needed
+      - netdevops_network
 
 volumes:
-  n8n_data:
+  n8n_engine_data:
 
 networks:
-  netdevops:
+  n8n_network:
+    driver: bridge
+  netdevops_network:
     driver: bridge

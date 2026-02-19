@@ -3,10 +3,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-: "${NET_DEVICE_USERNAME:?NET_DEVICE_USERNAME must be set in environment}"
-: "${NET_DEVICE_PASSWORD:?NET_DEVICE_PASSWORD must be set in environment}"
+# Load .env if present
+[[ -f .env ]] && set -a && source .env && set +a
 
-NET_DEVICE_PORT=${NET_DEVICE_PORT:-22}
 PORT=${PORT:-8000}
 
 # Kill any process already using the port
@@ -19,7 +18,7 @@ if lsof -ti:${PORT} >/dev/null 2>&1; then
 fi
 
 echo "Starting Django application on http://localhost:${PORT}"
-echo "POST /api/v1/run-show with {\"device_ip\":\"<ip>\",\"command\":\"<show command>\"}"
+echo "POST /api/v1/run-show with {\"device_ip\":\"<ip>\",\"device_type\":\"<arista_eos|cisco_ios|...>\",\"command\":\"<show command>\"}"
 
 # Apply database migrations
 python3 manage.py migrate --noinput

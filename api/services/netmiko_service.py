@@ -9,6 +9,8 @@ def run_show_command(device: dict, command: str, creds: dict) -> str:
         'password': creds.get('password'),
         'port': creds.get('port', 22),
         'fast_cli': False,
+        'read_timeout_override': 30,
+        'conn_timeout': 20,
     }
     if creds.get('enable_password'):
         conn_params['secret'] = creds.get('enable_password')
@@ -19,7 +21,7 @@ def run_show_command(device: dict, command: str, creds: dict) -> str:
                 net_connect.enable()
             except Exception:
                 pass
-        output = net_connect.send_command(command,use_textfsm=True)
+        output = net_connect.send_command(command, use_textfsm=True, read_timeout=30)
     finally:
         try:
             net_connect.disconnect()

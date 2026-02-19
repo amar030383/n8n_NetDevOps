@@ -45,19 +45,33 @@ Response:
 **POST** `/api/v1/run-show`
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/run-show \
+curl -X POST -u admin:admin http://host.docker.internal:8000/api/v1/run-show \
   -H "Content-Type: application/json" \
-  -d '{"device_ip":"172.18.9.31","command":"show version"}'
+  -d '{"device_ip":"172.18.9.31","device_type":"arista_eos","command":"show version"}'
 ```
 
-| Parameter    | Required | Description                                              |
-|-------------|----------|----------------------------------------------------------|
-| `device_ip` | Yes      | IP address of the network device                         |
-| `command`   | Yes      | Show command to run (e.g. `show version`)                |
-| `device_type` | No    | Netmiko device type (e.g. `arista_eos`). Required if IP not in `devices.csv` |
+| Parameter     | Required | Description                               |
+|--------------|----------|-------------------------------------------|
+| `device_ip`  | Yes      | IP address of the network device          |
+| `device_type`| Yes      | Netmiko device type (e.g. `arista_eos`, `cisco_ios`) |
+| `command`    | Yes      | Show command to run (e.g. `show version`)  |
 
 ## Configuration
 
-- **devices.csv**: Optional. Columns: `device_name`, `ip_address`, `device_type`. Used to resolve `device_type` from `device_ip`.
 - **textfsm_templates**: Optional. Place under `textfsm_templates/<device_type>/<command>.tpl` for parsed output.
-# n8n_NetDevOps
+
+## Docker
+
+n8n_engine and netdevops run on **separate networks**:
+
+| Service    | Container   | Port | Network        |
+|------------|-------------|------|----------------|
+| n8n_engine | n8n_engine   | 5678 | n8n_network    |
+| netdevops  | netdevops    | 8000 | netdevops_network |
+
+**n8n HTTP Request URL:** `http://host.docker.internal:8000/api/v1/run-show`
+
+```bash
+# Fresh rebuild (removes old images, builds from scratch)
+./scripts/docker-rebuild.sh
+```
