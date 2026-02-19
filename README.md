@@ -1,77 +1,118 @@
-# Django Netmiko API
+# NetDevOps API
 
-API for running read-only show commands against network devices via SSH (Netmiko).
+REST API for running show commands on network devices via SSH (Netmiko). Designed to integrate with n8n for network automation workflows.
 
-## Setup
+## Architecture
 
-```bash
-pip install -r requirements.txt
+```
+n8n_engine (5678)  -->  netdevops API (8000)  -->  Network Devices (SSH)
 ```
 
-Set credentials via environment variables:
+Both services run as separate Docker containers on isolated networks. n8n reaches the API via `http://host.docker.internal:8000`.
 
-- `NET_DEVICE_USERNAME` (required)
-- `NET_DEVICE_PASSWORD` (required)
-- `NET_DEVICE_ENABLE_PASSWORD` (optional)
-- `NET_DEVICE_PORT` (optional, default: 22)
-
-## Start
+## Quick Start
 
 ```bash
-export NET_DEVICE_USERNAME=your_username
-export NET_DEVICE_PASSWORD=your_password
-./scripts/start.sh
+cp .env.example .env
+docker compose up -d
 ```
 
-Runs at `http://localhost:8000`. The script kills any existing process on port 8000 before starting.
+- **n8n UI:** http://localhost:5678
+- **NetDevOps API:** http://localhost:8000
 
 ## API
 
-**GET** `/api/v1/health`
+### Health Check
 
-Health check endpoint for load balancers and monitoring.
+```
+GET /api/v1/health
+```
 
 ```bash
 curl http://localhost:8000/api/v1/health
 ```
 
-Response:
-```json
-{"status": "ok", "timestamp": "2025-02-18T12:00:00.000000Z"}
+### Run Show Command
+
+```
+POST /api/v1/run-show
 ```
 
----
+Requires HTTP Basic Auth (`admin:admin` by default).
 
-**POST** `/api/v1/run-show`
+| Parameter         | Required | Description                                          |
+|-------------------|----------|------------------------------------------------------|
+| `device_ip`       | Yes      | IP address of the network device                     |
+| `device_type`     | Yes      | Netmiko device type (`cisco_ios`, `arista_eos`, etc) |
+| `command`         | Yes      | Show command to run                                  |
+| `username`        | Yes      | SSH username for the device                          |
+| `password`        | Yes      | SSH password for the device                          |
+| `enable_password` | No       | Enable mode password                                 |
+| `port`            | No       | SSH port (default: 22)                               |
 
 ```bash
-curl -X POST -u admin:admin http://host.docker.internal:8000/api/v1/run-show \
+curl -X POST -u admin:admin \
   -H "Content-Type: application/json" \
-  -d '{"device_ip":"172.18.9.31","device_type":"arista_eos","command":"show version"}'
+  -d '{
+    "device_ip": "10.0.0.1",
+    "device_type": "cisco_ios",
+    "command": "show version",
+    "username": "admin",
+    "password": "secret"
+  }' \
+  http://localhost:8000/api/v1/run-show
 ```
 
-| Parameter     | Required | Description                               |
-|--------------|----------|-------------------------------------------|
-| `device_ip`  | Yes      | IP address of the network device          |
-| `device_type`| Yes      | Netmiko device type (e.g. `arista_eos`, `cisco_ios`) |
-| `command`    | Yes      | Show command to run (e.g. `show version`)  |
+Output is automatically parsed via TextFSM (via Netmiko) when a matching template exists.
 
-## Configuration
+## n8n Integration
 
-- **textfsm_templates**: Optional. Place under `textfsm_templates/<device_type>/<command>.tpl` for parsed output.
+In your n8n HTTP Request node:
+
+- **URL:** `http://host.docker.internal:8000/api/v1/run-show`
+- **Method:** POST
+- **Headers:** `authorization: Basic YWRtaW46YWRtaW4=`
+- **Body:** JSON with `device_ip`, `device_type`, `command`, `username`, `password`
 
 ## Docker
 
-n8n_engine and netdevops run on **separate networks**:
-
-| Service    | Container   | Port | Network        |
-|------------|-------------|------|----------------|
-| n8n_engine | n8n_engine   | 5678 | n8n_network    |
-| netdevops  | netdevops    | 8000 | netdevops_network |
-
-**n8n HTTP Request URL:** `http://host.docker.internal:8000/api/v1/run-show`
+| Container    | Port | Network           |
+|-------------|------|-------------------|
+| n8n_engine  | 5678 | n8n_network       |
+| netdevops   | 8000 | netdevops_network |
 
 ```bash
-# Fresh rebuild (removes old images, builds from scratch)
-./scripts/docker-rebuild.sh
+docker compose up -d            # Start
+docker compose down             # Stop
+docker restart netdevops        # Restart API after code changes
+./scripts/docker-rebuild.sh     # Full rebuild from scratch
+```
+
+## Local Development
+
+```bash
+pip install -r requirements.txt
+./scripts/start.sh
+```
+
+## Project Structure
+
+```
+├── api/
+│   ├── views.py                 # API endpoints
+│   ├── urls.py                  # URL routing
+│   └── services/
+│       └── netmiko_service.py   # SSH connection logic
+├── netapi/
+│   ├── settings.py              # Django settings
+│   ├── urls.py                  # Root URL config
+│   └── wsgi.py                  # WSGI entry point
+├── scripts/
+│   ├── start.sh                 # Local dev startup
+│   ├── docker-entrypoint.sh     # Container entrypoint
+│   ├── docker-rebuild.sh        # Full Docker rebuild
+│   └── create_admin.py          # Django admin user setup
+├── docker-compose.yml
+├── Dockerfile
+└── requirements.txt
 ```

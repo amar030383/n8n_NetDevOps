@@ -1,8 +1,4 @@
 Django>=4.2
 djangorestframework
 netmiko
-textfsm
 gunicorn
-requests
-psutil
-paramiko
